@@ -41,7 +41,7 @@ class LLMClassifier:
         else:
             raise ValueError("No se pudo clasificar el tipo de documento.")
 
-    def _query_openai(self, prompt: str) :
+    def _query_openai(self, prompt: str, doc_type: str = None) -> Dict[str, Any]:
         response = self.client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -52,7 +52,11 @@ class LLMClassifier:
         content = response.choices[0].message.content.strip()
         # print(content)
 
-        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if doc_type == "modelo_190":
+            match = re.search(r"\{.*\}", content, re.DOTALL)
+        elif doc_type == "rnt":
+            match = re.search(r"\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\]", content, re.DOTALL)
+
         if not match:
             raise ValueError("No se encontró ningún JSON válido en la respuesta del modelo.")
 
@@ -77,7 +81,7 @@ Ejemplo de salida:
 Contenido del documento:
 {text}
 """
-        return self._query_openai(prompt)
+        return self._query_openai(prompt, "modelo_190")
 
     def extract_from_10t(self, text: str) -> Dict[str, Any]:
         prompt = f"""
@@ -91,18 +95,48 @@ Contenido del documento:
 """
         return self._query_openai(prompt)
 
-    def extract_from_rnt(self, text: str, siglas: str) -> Dict[str, Any]:
+    def extract_from_rnt(self, text: str) -> str:
         prompt = f"""
-Eres un asistente que extrae bases de cotización de documentos RNT mensuales.
-Busca al trabajador identificado por las siglas: {siglas}.
-Extrae el valor de \"Base de contingencias comunes\" y devuélvelo como JSON.
-Ejemplo de salida:
-{{ "siglas": "GAFOJ", "base_contingencias_comunes": 3170.19 }}
+    Eres un asistente que extrae información de documentos RNT mensuales de la Seguridad Social.
 
-Contenido del documento:
-{text}
-"""
-        return self._query_openai(prompt)
+    Tu tarea es:
+
+    1. Leer el texto y devolver una lista de trabajadores, donde cada uno tiene:
+        - `"siglas"`: el identificador del trabajador (CAF), de 5 letras mayúsculas.
+        - `"base_contingencias_comunes"`: número decimal, por ejemplo: 3170.19
+        - `"dias_cotizados"`: número entero, por ejemplo: 30
+
+    2. Extraer también el **periodo de liquidación** del documento. Aparece como:
+    `"Periodo de liquidación 12/2021-12/2021"`
+    Interprétalo y devuelve el valor `"01-12-2021"` (día 1 del mes indicado).
+
+    El resultado debe estar en el siguiente formato JSON:
+
+    ```json
+    {{
+    "periodo": "01-12-2021",
+    "trabajadores": [
+        {{
+        "worker_id": "GAFOJ",
+        "base_contingencias_comunes": 3170.19,
+        "dias_cotizados": 30,
+        "periodo": "01-12-2021"
+        }},
+        {{
+        "worker_id": "LAMAA",
+        "base_contingencias_comunes": 2860.52,
+        "dias_cotizados": 28, 
+        "periodo": "01-12-2021"
+        }}
+    ]
+    }}
+    ```
+    ⚠️ Devuelve solo un JSON válido con el formato especificado. No incluyas explicaciones ni texto adicional.
+
+    Contenido del documento:
+    {text}
+    """
+        return self._query_openai(prompt, "rnt")
 
     def extract_from_idc(self, text: str) -> Dict[str, Any]:
         prompt = f"""
