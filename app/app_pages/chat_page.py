@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
-def show(chatbot, calculator, session_state):
+def show(chatbot, database, session_state):
     """
     Display the Chat page
     
@@ -32,7 +32,7 @@ def show(chatbot, calculator, session_state):
             end_date = datetime.now().strftime("%Y-%m-%d")
             
             # Get all worker cost data to provide context to the chatbot
-            context = calculator.calculate_all_workers_cost(start_date, end_date)
+            context = database.get_all_workers()
             
             # Get response from chatbot
             response = chatbot.get_response(prompt, context)

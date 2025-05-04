@@ -46,4 +46,4 @@ elif page == "View Workers":
 elif page == "Calculate Costs":
     show_calculate_costs_page(calculator, db)
 elif page == "Chat":
-    show_chat_page(chatbot, calculator, st.session_state)
+    show_chat_page(chatbot, db, st.session_state)

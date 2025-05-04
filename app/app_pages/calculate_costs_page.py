@@ -48,7 +48,7 @@ def show(calculator, db):
                             {
                                 'Worker': w['worker_name'],
                                 'ID': w['worker_id'],
-                                'Rate': f"${w['hourly_rate']:.2f}",
+                                'Percepcion Integra': f"${w['percepcion_integra']:.2f}",
                                 'Hours': f"{w['total_hours']:.2f}",
                                 'Cost': f"${w['total_cost']:.2f}"
                             } for w in worker_results
@@ -64,7 +64,7 @@ def show(calculator, db):
                     if result:
                         st.subheader(f"Cost for {result['worker_name']}")
                         col1, col2, col3 = st.columns(3)
-                        col1.metric("Hourly Rate", f"${result['hourly_rate']:.2f}")
+                        col1.metric("Percepcion Integra", f"${result['percepcion_integra']:.2f}")
                         col2.metric("Total Hours", f"{result['total_hours']:.2f}")
                         col3.metric("Total Cost", f"${result['total_cost']:.2f}")
                     else:
