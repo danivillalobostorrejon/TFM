@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  streamlit:
+    build: .
+    ports:
+      - "8000:8000"  # Esto expone el puerto 8000 de tu contenedor a tu máquina local
+    environment:
+      - STREAMLIT_SERVER_PORT=8000
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=mi_base
+      - DB_USER=usuario
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: mi_base
+      POSTGRES_USER: usuario
+      POSTGRES_PASSWORD: contrasena
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+volumes:
+  db_data:
+
