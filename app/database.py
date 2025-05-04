@@ -38,6 +38,16 @@ class Database:
             percepcion_integra DECIMAL(10, 2) NOT NULL
         )
         """)
+
+        # Create contingencias comunes table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS contingencias_comunes (
+            worker_id VARCHAR(100) REFERENCES workers(worker_id),
+            base_contingencias_comunes DECIMAL(10, 2) NOT NULL,
+            dias_cotizados INT NOT NULL,
+            periodo VARCHAR(7) NOT NULL,
+        )
+        """)
         
         # Create work_hours table
         cur.execute("""
