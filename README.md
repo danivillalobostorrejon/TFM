@@ -98,7 +98,8 @@ Visita: [http://localhost:8000](http://localhost:8000)
 
 ## 🧑‍💼 Autor
 
-@danivillalobostorrejon
+[@danivillalobostorrejon](https://github.com/danivillalobostorrejon)
+
 ---
 
 ## 🧩 Requisitos
