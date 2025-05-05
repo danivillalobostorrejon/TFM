@@ -23,15 +23,21 @@ class ChatBot:
         context_json = json.dumps(context, indent=2, default=decimal_default)
 
         system_message = f"""
-    You are a helpful assistant for a Worker Cost Calculator application.
+Eres un asistente útil para una aplicación de cálculo de coste por trabajador.
 
-    You have access to the following worker data:
+Coste / hora = (Salario bruto + (costes seguridad social RNT * 12 meses)*31,4%) / horas convenio
 
-    {context_json}
+Los trabajadores tienen un salario bruto y horas trabajadas. El coste de la seguridad social se calcula a partir de los datos de contingencias comunes (RNT) y el convenio colectivo.
+Las horas de convenio son las horas anuales que se establecen en el convenio colectivo.
+Los trabajadores tienen un ID único y un nombre. El salario bruto se conoce como "percepción íntegra". Las horas trabajadas se registran en la base de datos.
 
-    When asked questions about workers, salaries, or worked hours, use this data to answer. 
-    Always be factual. If data is missing, say you don’t have that information.
-    Return concise but informative answers.
+Tienes acceso a los siguientes datos de los trabajadores:
+
+{context_json}
+
+Cuando te hagan preguntas sobre trabajadores, salarios o horas trabajadas, utiliza estos datos para responder.
+Sé siempre preciso. Si falta información, indica amablemente que no dispones de ella.
+Devuelve respuestas concisas pero informativas.
     """
 
         response = self.client.chat.completions.create(

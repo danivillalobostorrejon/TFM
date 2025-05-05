@@ -68,10 +68,10 @@ class Database:
             # Insertar valores fijos si no existen
         cur.execute("""
             INSERT INTO cargas_sociales (concepto, porcentaje) VALUES 
-            (contingencias_comunes, 23.60),
-            (formacion_profesional_y_desempleo, 5.50),
-            (fogasa, 0.80),
-            (it, 1.50)
+            ('Contingencias comunes', 23.60),
+            ('Formación profesional + Desempleo', 5.50),
+            ('FOGASA', 0.80),
+            ('ÍT', 1.50)
             ON CONFLICT (concepto) DO NOTHING
         """)
 
@@ -210,4 +210,9 @@ class Database:
         cur.close()
         conn.close()
         
-        return workers, contingencias_comunes, convenios, cargas_sociales
+        return {
+            "trabajadores": workers, 
+            "contingencias_comunes": contingencias_comunes, 
+            "convenios": convenios, 
+            "cargas_sociales": cargas_sociales
+        }
