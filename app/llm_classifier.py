@@ -43,7 +43,7 @@ class LLMClassifier:
 
     def _query_openai(self, prompt: str, doc_type: str = None) -> Dict[str, Any]:
         response = self.client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "Eres un asistente experto en analizar documentos laborales y fiscales."},
                 {"role": "user", "content": prompt}
@@ -78,8 +78,6 @@ Tu tarea es encontrar el valor del campo \"Percepción íntegra\" asociado a un 
 Ejemplo de salida:
 {{"worker_name": "Jose Garcia Fontecha", "percepcion_integra": 24214.44}}
 
-Si el valor es 1,759.0 debes devolver 1759.0
-
 Contenido del documento:
 {text}
 """
@@ -91,8 +89,6 @@ Eres un asistente que extrae información fiscal de documentos PDF.
 Tu tarea es encontrar el valor del campo \"Rendimiento a integrar\" asociado a un trabajador y devolverlo como JSON.
 Ejemplo de salida:
 {{"worker_name": "Jose Garcia Fontecha", "rendimiento_integrar": 60000.00, "worker_id": "GAFOJ"}}
-
-Si el valor es 1,759.0 debes devolver 1759.0
 
 Contenido del documento:
 {text}
@@ -107,7 +103,7 @@ Contenido del documento:
 
     1. Leer el texto y devolver una lista de trabajadores, donde cada uno tiene:
         - `"worker_id"`: el identificador del trabajador (CAF), de 5 letras mayúsculas.
-        - `"base_contingencias_comunes"`: número decimal, por ejemplo: 3170.19, Si el valor es 1,759.0 debes devolver 1759.0
+        - `"base_contingencias_comunes"`: número decimal, por ejemplo: 3170.19
         - `"dias_cotizados"`: número entero, por ejemplo: 30
 
     2. Extraer también el **periodo de liquidación** del documento. Aparece como:

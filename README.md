@@ -69,7 +69,7 @@ Visita: [http://localhost:8000](http://localhost:8000)
 
 ## 🧠 LLMs usados
 
-- GPT-3.5 y GPT-4 vía OpenAI API
+- GPT-4 vía OpenAI API
 - Prompts diseñados para:
   - Clasificar documentos automáticamente
   - Extraer campos como percepciones, bases y cotizaciones
