@@ -15,16 +15,7 @@ class Database:
     def connect(self):
         """Establish a connection to the PostgreSQL database."""
         return psycopg2.connect(self.connection_string)
-    
-    def clear_all_data(self):
-        conn = self.connect()
-        cur = conn.cursor()
-        cur.execute("TRUNCATE TABLE salary_data, work_hours, workers CASCADE;")
-        conn.commit()
-        cur.close()
-        conn.close()
 
-    
     def create_tables(self):
         """Create necessary tables if they don't exist."""
         conn = self.connect()
@@ -156,24 +147,33 @@ class Database:
         cur.close()
         conn.close()
     
+    def get_workers_data(self):
+
+        conn = self.connect()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+                    SELECT 'modelo 190' as filename,worker_id, worker_name, percepcion_integra FROM workers 
+                    union 
+                    SELECT '10t' as filename,worker_id, worker_name, rendimiento_integrar as percepcion_integra FROM doc_10t
+        """)
+        workers = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return workers
+
     def get_all_workers(self):
         """Get list of all workers."""
         conn = self.connect()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("SELECT * FROM workers left join convenio on true")
+        cur.execute("SELECT * FROM workers left join convenio on true left join cargas_sociales on true")
         workers = cur.fetchall()
 
-        cur.execute("SELECT * FROM contingencias_comunes")
+        cur.execute("SELECT worker_id, periodo, sum(base_contingencias_comunes) as base_contingencias_comunes FROM contingencias_comunes group by worker_id, periodo")
         contingencias_comunes = cur.fetchall()
         
-        # cur.execute("SELECT * FROM convenio")
-        # convenios = cur.fetchall()
-
-        cur.execute("SELECT * FROM cargas_sociales")
-        cargas_sociales = cur.fetchall()
-
-        cur.execute("SELECT * FROM doc_10t")
+        cur.execute("SELECT * FROM doc_10t left join convenio on true left join cargas_sociales on true")
         doc_10t = cur.fetchall()
 
         cur.close()
@@ -183,6 +183,5 @@ class Database:
             "trabajadores": workers, 
             "contingencias_comunes": contingencias_comunes, 
             # "convenios": convenios, 
-            "cargas_sociales": cargas_sociales,
             "doc_10t": doc_10t
         }

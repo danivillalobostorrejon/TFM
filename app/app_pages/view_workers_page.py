@@ -10,14 +10,14 @@ def show(db):
     """
     st.title("Worker Information")
     
-    workers = db.get_all_workers()
+    workers = db.get_workers_data()
     
     if workers:
-        trabajadores = workers.get("trabajadores", [])
-        df = pd.DataFrame(trabajadores)
+        
+        df = pd.DataFrame(workers)
         st.dataframe(df)
 
-        contingencias_comunes = workers.get("contingencias_comunes", [])
-        st.dataframe(contingencias_comunes)
+        # contingencias_comunes = workers.get("contingencias_comunes", [])
+        # st.dataframe(contingencias_comunes)
     else:
         st.info("No workers found in the database. Please upload documents first.")
