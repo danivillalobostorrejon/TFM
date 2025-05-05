@@ -76,14 +76,12 @@ class Database:
         """)
 
         
-        # Create work_hours table
+        # Create 10t table
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS work_hours (
-            id SERIAL PRIMARY KEY,
-            worker_id VARCHAR(100) REFERENCES workers(worker_id),
-            hours_worked DECIMAL(10, 2) NOT NULL,
-            work_date DATE NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        CREATE TABLE IF NOT EXISTS doc_10t (
+            worker_id VARCHAR(100) UNIQUE,
+            worker_name VARCHAR(255) NOT NULL,
+            rendimiento_integrar DECIMAL(10, 2) NOT NULL
         )
         """)
         
@@ -142,53 +140,21 @@ class Database:
         cur.close()
         conn.close()
         
-    def insert_work_hours(self, worker_id: str, hours_worked: float, work_date: str):
-        """Record work hours for a worker."""
+    def insert_10t(self, worker_data: Dict[str, Any]):
+        """Insert or update 10t information."""
         conn = self.connect()
         cur = conn.cursor()
         
         cur.execute("""
-        INSERT INTO work_hours (worker_id, hours_worked, work_date)
+        INSERT INTO doc_10t (worker_id, worker_name, rendimiento_integrar)
         VALUES (%s, %s, %s)
-        """, (worker_id, hours_worked, work_date))
+        ON CONFLICT (worker_id) DO UPDATE 
+        SET worker_name = EXCLUDED.worker_name, rendimiento_integrar = EXCLUDED.rendimiento_integrar
+        """, (worker_data['worker_id'], worker_data['worker_name'], worker_data['rendimiento_integrar']))
         
         conn.commit()
         cur.close()
         conn.close()
-        
-    def get_worker_information(self, worker_id: str, start_date: str = None, end_date: str = None):
-        """Calculate cost for a worker within a date range."""
-        conn = self.connect()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        query = """
-        SELECT w.worker_id, w.worker_name, w.percepcion_integra, 
-               SUM(wh.hours_worked) as total_hours,
-               SUM(w.percepcion_integra) as total_percepcion_integra
-        FROM workers w
-        JOIN work_hours wh ON w.worker_id = wh.worker_id
-        WHERE w.worker_id = %s
-        """
-        
-        params = [worker_id]
-        
-        if start_date:
-            query += " AND wh.work_date >= %s"
-            params.append(start_date)
-            
-        if end_date:
-            query += " AND wh.work_date <= %s"
-            params.append(end_date)
-            
-        query += " GROUP BY w.worker_id, w.worker_name, w.percepcion_integra"
-        
-        cur.execute(query, params)
-        result = cur.fetchone()
-        
-        cur.close()
-        conn.close()
-        
-        return result
     
     def get_all_workers(self):
         """Get list of all workers."""
@@ -207,6 +173,9 @@ class Database:
         cur.execute("SELECT * FROM cargas_sociales")
         cargas_sociales = cur.fetchall()
 
+        cur.execute("SELECT * FROM doc_10t")
+        doc_10t = cur.fetchall()
+
         cur.close()
         conn.close()
         
@@ -214,5 +183,6 @@ class Database:
             "trabajadores": workers, 
             "contingencias_comunes": contingencias_comunes, 
             "convenios": convenios, 
-            "cargas_sociales": cargas_sociales
+            "cargas_sociales": cargas_sociales,
+            "doc_10t": doc_10t
         }

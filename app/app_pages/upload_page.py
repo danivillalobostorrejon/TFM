@@ -56,6 +56,7 @@ def show(pdf_preprocessor, llm_classifier, db):
                         structured_data['worker_id'] = pdf_preprocessor.generar_id(structured_data['worker_name'])
                     elif doc_type == "10t":
                         structured_data = llm_classifier.extract_from_10t(page_text)
+                        structured_data['worker_id'] = pdf_preprocessor.generar_id(structured_data['worker_name'])
                     elif doc_type == "idc":
                         structured_data = llm_classifier.extract_from_idc(page_text)
                     elif doc_type == "convenio":
@@ -103,13 +104,12 @@ def show(pdf_preprocessor, llm_classifier, db):
                         db.insert_convenio({
                             'horas_convenio_anuales': float(value),
                         })
-            if all(k in info for k in ['worker_id', 'worker_name', 'hourly_rate', 'hours_worked', 'work_date']):
-
-                db.insert_work_hours(
-                    info['worker_id'],
-                    float(info['hours_worked']),
-                    info['work_date']
-                )
+            elif doc['doc_type'] == "10t":
+                db.insert_10t({
+                    'worker_id': info['worker_id'],
+                    'worker_name': info['worker_name'],
+                    'rendimiento_integrar': float(info['rendimiento_integrar']),
+                })
 
         progress_bar.progress(100)
         status_text.text("Processing complete!")

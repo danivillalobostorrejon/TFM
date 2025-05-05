@@ -52,7 +52,7 @@ class LLMClassifier:
         content = response.choices[0].message.content.strip()
         # print(content)
 
-        if doc_type in ("modelo_190", "convenio"):
+        if doc_type in ("modelo_190", "convenio", "10t"):
             match = re.search(r"\{.*\}", content, re.DOTALL)
         elif doc_type == "rnt":
             match = re.search(r"\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\]", content, re.DOTALL)
@@ -88,12 +88,12 @@ Contenido del documento:
 Eres un asistente que extrae información fiscal de documentos PDF.
 Tu tarea es encontrar el valor del campo \"Rendimiento a integrar\" asociado a un trabajador y devolverlo como JSON.
 Ejemplo de salida:
-{{ "rendimientos": [{{"nombre": "Jose Garcia Fontecha", "rendimiento_integrar": 60000.00}}] }}
+{{"worker_name": "Jose Garcia Fontecha", "rendimiento_integrar": 60000.00, "worker_id": "GAFOJ"}}
 
 Contenido del documento:
 {text}
 """
-        return self._query_openai(prompt)
+        return self._query_openai(prompt, "10t")
 
     def extract_from_rnt(self, text: str) -> str:
         prompt = f"""
