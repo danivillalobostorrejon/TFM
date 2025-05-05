@@ -61,8 +61,7 @@ def show(pdf_preprocessor, llm_classifier, db):
                     elif doc_type == "convenio":
                         structured_data = llm_classifier.extract_from_convenio(page_text)
                     elif doc_type == "rnt":
-                        # Aquí necesitas pasar las siglas manualmente o detectarlas antes
-                        continue  # O raise NotImplementedError
+                        structured_data = llm_classifier.extract_from_rnt(page_text)
                     else:
                         continue  # Documento irrelevante
 
@@ -88,6 +87,22 @@ def show(pdf_preprocessor, llm_classifier, db):
                     'worker_name': info['worker_name'],
                     'percepcion_integra': float(info['percepcion_integra']),
                 })
+            elif doc['doc_type'] == "rnt":
+                for worker in info:
+                    db.insert_contingencias_comunes({
+                        "worker_id": worker['worker_id'],
+                        "base_contingencias_comunes": worker['base_contingencias_comunes'],
+                        "dias_cotizados": worker['dias_cotizados'],
+                        "periodo": worker['periodo'],
+                    })
+            elif doc['doc_type'] == "convenio":
+                value = info.get('horas_convenio_anuales')
+
+                if value is not None:
+                    if float(value) > 0:
+                        db.insert_convenio({
+                            'horas_convenio_anuales': float(value),
+                        })
             if all(k in info for k in ['worker_id', 'worker_name', 'hourly_rate', 'hours_worked', 'work_date']):
 
                 db.insert_work_hours(

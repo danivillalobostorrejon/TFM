@@ -42,10 +42,18 @@ class Database:
         # Create contingencias comunes table
         cur.execute("""
         CREATE TABLE IF NOT EXISTS contingencias_comunes (
-            worker_id VARCHAR(100) REFERENCES workers(worker_id),
-            base_contingencias_comunes DECIMAL(10, 2) NOT NULL,
+            worker_id VARCHAR(100),
+            base_contingencias_comunes DECIMAL(24, 4) NOT NULL,
             dias_cotizados INT NOT NULL,
-            periodo VARCHAR(7) NOT NULL,
+            periodo VARCHAR(10) NOT NULL,
+        UNIQUE(worker_id, periodo, base_contingencias_comunes, dias_cotizados)
+        )
+        """)
+
+        # Create convenio table
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS convenio (
+            horas_convenio_anuales DECIMAL(10, 2) NOT NULL UNIQUE
         )
         """)
         
@@ -75,6 +83,41 @@ class Database:
         ON CONFLICT (worker_id) DO UPDATE 
         SET worker_name = EXCLUDED.worker_name, percepcion_integra = EXCLUDED.percepcion_integra
         """, (worker_data['worker_id'], worker_data['worker_name'], worker_data['percepcion_integra']))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    def insert_contingencias_comunes(self, worker_data: Dict[str, Any]):
+        """Insert or update worker information."""
+        conn = self.connect()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            INSERT INTO contingencias_comunes (worker_id, base_contingencias_comunes, dias_cotizados, periodo)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (worker_id, periodo, base_contingencias_comunes, dias_cotizados) DO NOTHING 
+            """, (
+                worker_data['worker_id'],
+                worker_data['base_contingencias_comunes'],
+                worker_data['dias_cotizados'],
+                worker_data['periodo']
+        ))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+
+    def insert_convenio(self, convenio_data: Dict[str, Any]):
+        """Insert or update convenio information."""
+        conn = self.connect()
+        cur = conn.cursor()
+        
+        cur.execute("""
+        INSERT INTO convenio (horas_convenio_anuales)
+        VALUES (%s)
+        ON CONFLICT (horas_convenio_anuales) DO NOTHING
+        """, (convenio_data['horas_convenio_anuales'],))
         
         conn.commit()
         cur.close()
@@ -135,8 +178,11 @@ class Database:
         
         cur.execute("SELECT * FROM workers")
         workers = cur.fetchall()
+
+        cur.execute("SELECT * FROM contingencias_comunes")
+        contingencias_comunes = cur.fetchall()
         
         cur.close()
         conn.close()
         
-        return workers
+        return workers, contingencias_comunes

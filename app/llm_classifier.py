@@ -52,7 +52,7 @@ class LLMClassifier:
         content = response.choices[0].message.content.strip()
         # print(content)
 
-        if doc_type == "modelo_190":
+        if doc_type in ("modelo_190", "convenio"):
             match = re.search(r"\{.*\}", content, re.DOTALL)
         elif doc_type == "rnt":
             match = re.search(r"\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\]", content, re.DOTALL)
@@ -102,7 +102,7 @@ Contenido del documento:
     Tu tarea es:
 
     1. Leer el texto y devolver una lista de trabajadores, donde cada uno tiene:
-        - `"siglas"`: el identificador del trabajador (CAF), de 5 letras mayúsculas.
+        - `"worker_id"`: el identificador del trabajador (CAF), de 5 letras mayúsculas.
         - `"base_contingencias_comunes"`: número decimal, por ejemplo: 3170.19
         - `"dias_cotizados"`: número entero, por ejemplo: 30
 
@@ -114,7 +114,6 @@ Contenido del documento:
 
     ```json
     {{
-    "periodo": "01-12-2021",
     "trabajadores": [
         {{
         "worker_id": "GAFOJ",
@@ -160,4 +159,4 @@ Devuelve la salida en formato:
 Contenido del documento:
 {text}
 """
-        return self._query_openai(prompt)
+        return self._query_openai(prompt, "convenio")
