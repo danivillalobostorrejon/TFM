@@ -56,6 +56,25 @@ class Database:
             horas_convenio_anuales DECIMAL(10, 2) NOT NULL UNIQUE
         )
         """)
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cargas_sociales (
+                id SERIAL PRIMARY KEY,
+                concepto VARCHAR(100) UNIQUE NOT NULL,
+                porcentaje DECIMAL(5, 2) NOT NULL
+            )
+        """)
+
+            # Insertar valores fijos si no existen
+        cur.execute("""
+            INSERT INTO cargas_sociales (concepto, porcentaje) VALUES 
+            (contingencias_comunes, 23.60),
+            (formacion_profesional_y_desempleo, 5.50),
+            (fogasa, 0.80),
+            (it, 1.50)
+            ON CONFLICT (concepto) DO NOTHING
+        """)
+
         
         # Create work_hours table
         cur.execute("""
@@ -182,7 +201,13 @@ class Database:
         cur.execute("SELECT * FROM contingencias_comunes")
         contingencias_comunes = cur.fetchall()
         
+        cur.execute("SELECT * FROM convenio")
+        convenios = cur.fetchall()
+
+        cur.execute("SELECT * FROM cargas_sociales")
+        cargas_sociales = cur.fetchall()
+
         cur.close()
         conn.close()
         
-        return workers, contingencias_comunes
+        return workers, contingencias_comunes, convenios, cargas_sociales
