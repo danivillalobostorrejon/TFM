@@ -102,7 +102,17 @@ def show(pdf_preprocessor, llm_classifier, db):
                         'data': structured_data
                     })
                 except Exception as e:
-                    st.warning(f"Página {page_num+1} de {os.path.basename(file_path)} no se procesó: {e}")
+
+                    error_message = f"Página {page_num+1} de {os.path.basename(file_path)} no se procesó: {e}"
+
+                    # Mostrar scrollable con markdown + HTML
+                    st.markdown(f"""
+                    <div style="max-height: 150px; overflow-y: auto; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 10px; border-radius: 5px;">
+                    <b>Advertencia:</b><br>
+                    {error_message}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    # st.warning(f"Página {page_num+1} de {os.path.basename(file_path)} no se procesó: {e}")
 
             progress = (i + 1) / len(saved_files) * 50 + 50
             progress_bar.progress(int(progress))
