@@ -4,6 +4,35 @@ import os
 import json
 
 
+def clean_classified_docs(classified_docs):
+    """
+    Clean classified documents to remove irrelevant data
+
+    Args:
+        classified_docs (list): List of classified documents
+
+    Returns:
+        list: Cleaned list of classified documents
+    """
+    # Filtrar solo documentos de tipo 'convenio'
+    convenio_docs = [doc for doc in classified_docs if doc["doc_type"] == "convenio"]
+
+    # Encontrar el documento con el mayor valor de horas_convenio_anuales
+    if convenio_docs:
+        convenio_max = max(
+            convenio_docs,
+            key=lambda d: float(d["data"].get("horas_convenio_anuales", 0))
+        )
+
+        # Eliminar todos los 'convenio' y agregar solo el de mayor valor
+        classified_docs = [
+            doc for doc in classified_docs if doc["doc_type"] != "convenio"
+        ]
+        classified_docs.append(convenio_max)
+
+    return classified_docs
+
+
 def show(pdf_preprocessor, llm_classifier, db):
     """
     Display the Upload Documents page
@@ -79,6 +108,9 @@ def show(pdf_preprocessor, llm_classifier, db):
             progress_bar.progress(int(progress))
             status_text.text(f"Clasificando páginas del archivo {i+1}/{len(saved_files)}")
 
+        # Limpiar classified_docs de datos irrelevantes
+        classified_docs = clean_classified_docs(classified_docs)
+
         # Insertar en la base de datos si los datos contienen info de trabajador
         for doc in classified_docs:
             info = doc['data']
@@ -98,7 +130,6 @@ def show(pdf_preprocessor, llm_classifier, db):
                     })
             elif doc['doc_type'] == "convenio":
                 value = info.get('horas_convenio_anuales')
-
                 if value is not None:
                     if float(value) > 0:
                         db.insert_convenio({

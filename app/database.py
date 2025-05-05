@@ -161,14 +161,14 @@ class Database:
         conn = self.connect()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("SELECT * FROM workers")
+        cur.execute("SELECT * FROM workers left join convenio on true")
         workers = cur.fetchall()
 
         cur.execute("SELECT * FROM contingencias_comunes")
         contingencias_comunes = cur.fetchall()
         
-        cur.execute("SELECT * FROM convenio")
-        convenios = cur.fetchall()
+        # cur.execute("SELECT * FROM convenio")
+        # convenios = cur.fetchall()
 
         cur.execute("SELECT * FROM cargas_sociales")
         cargas_sociales = cur.fetchall()
@@ -182,7 +182,7 @@ class Database:
         return {
             "trabajadores": workers, 
             "contingencias_comunes": contingencias_comunes, 
-            "convenios": convenios, 
+            # "convenios": convenios, 
             "cargas_sociales": cargas_sociales,
             "doc_10t": doc_10t
         }
