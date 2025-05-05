@@ -90,6 +90,8 @@ Visita: [http://localhost:8000](http://localhost:8000)
 ## ✅ Pendiente / Mejoras futuras
 
 - Subida masiva por carpetas
+- Diferenciacion entre empresas
+- Diferenciacion entre distintos convenios
 - Panel de administración
 - Cálculo automatizado del coste completo
 - Exportación a Excel o PDF
