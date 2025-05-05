@@ -98,8 +98,7 @@ Visita: [http://localhost:8000](http://localhost:8000)
 
 ## 🧑‍💼 Autor
 
-Desarrollado por un ingeniero de datos para automatizar el cálculo del coste laboral a partir de documentos oficiales.
-
+@danivillalobostorrejon
 ---
 
 ## 🧩 Requisitos
