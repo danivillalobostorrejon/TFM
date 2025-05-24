@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import os
-import json
 
 
 def clean_classified_docs(classified_docs):

@@ -15,36 +15,62 @@ class Database:
     def connect(self):
         """Establish a connection to the PostgreSQL database."""
         return psycopg2.connect(self.connection_string)
+    
+    def clean_database(self):
+        """Clean the database by dropping all tables."""
+        conn = self.connect()
+        cur = conn.cursor()
+        
+        # Drop all tables
+        cur.execute("DROP TABLE IF EXISTS workers CASCADE")
+        cur.execute("DROP TABLE IF EXISTS contingencias_comunes CASCADE")
+        cur.execute("DROP TABLE IF EXISTS convenio CASCADE")
+        cur.execute("DROP TABLE IF EXISTS cargas_sociales CASCADE")
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("Database cleaned successfully.")
 
     def create_tables(self):
         """Create necessary tables if they don't exist."""
         conn = self.connect()
         cur = conn.cursor()
+
         
         # Create workers table
         cur.execute("""
         CREATE TABLE IF NOT EXISTS workers (
-            worker_id VARCHAR(100) PRIMARY KEY,
+            worker_id VARCHAR(100),
+            year INT NOT NULL,
             worker_name VARCHAR(255) NOT NULL,
-            percepcion_integra DECIMAL(10, 2) NOT NULL
+            percepcion_integra DECIMAL(10, 2) NOT NULL,
+            company_id VARCHAR(100) NOT NULL,
+            company_name VARCHAR(255) NOT NULL,
+            UNIQUE(worker_id, company_id, year)
         )
         """)
 
         # Create contingencias comunes table
         cur.execute("""
-        CREATE TABLE IF NOT EXISTS contingencias_comunes (
-            worker_id VARCHAR(100),
-            base_contingencias_comunes DECIMAL(24, 4) NOT NULL,
-            dias_cotizados INT NOT NULL,
-            periodo VARCHAR(10) NOT NULL,
-        UNIQUE(worker_id, periodo, base_contingencias_comunes, dias_cotizados)
-        )
+            CREATE TABLE IF NOT EXISTS contingencias_comunes (
+                worker_id VARCHAR(100),
+                year INT NOT NULL,
+                base_contingencias_comunes DECIMAL(24, 4) NOT NULL,
+                dias_cotizados INT NOT NULL,
+                periodo VARCHAR(10) NOT NULL,
+                company_id VARCHAR(100) NOT NULL,
+                company_name VARCHAR(255) NOT NULL,
+                UNIQUE(worker_id, year, periodo, base_contingencias_comunes, dias_cotizados, company_id, company_name)
+            )
         """)
 
         # Create convenio table
         cur.execute("""
         CREATE TABLE IF NOT EXISTS convenio (
-            horas_convenio_anuales DECIMAL(10, 2) NOT NULL UNIQUE
+            year INT NOT NULL,
+            horas_convenio_anuales DECIMAL(10, 2) NOT NULL,
+            UNIQUE(year)
         )
         """)
 
@@ -65,16 +91,6 @@ class Database:
             ('ÍT', 1.50)
             ON CONFLICT (concepto) DO NOTHING
         """)
-
-        
-        # Create 10t table
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS doc_10t (
-            worker_id VARCHAR(100) UNIQUE,
-            worker_name VARCHAR(255) NOT NULL,
-            rendimiento_integrar DECIMAL(10, 2) NOT NULL
-        )
-        """)
         
         conn.commit()
         cur.close()
@@ -86,11 +102,18 @@ class Database:
         cur = conn.cursor()
         
         cur.execute("""
-        INSERT INTO workers (worker_id, worker_name, percepcion_integra)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (worker_id) DO UPDATE 
-        SET worker_name = EXCLUDED.worker_name, percepcion_integra = EXCLUDED.percepcion_integra
-        """, (worker_data['worker_id'], worker_data['worker_name'], worker_data['percepcion_integra']))
+        INSERT INTO workers (worker_id, year, worker_name, percepcion_integra, company_id, company_name)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (worker_id, company_id, year) DO NOTHING
+        """, (
+                worker_data['worker_id'], 
+                worker_data['year'], 
+                worker_data['worker_name'], 
+                worker_data['percepcion_integra'],
+                worker_data['company_id'],
+                worker_data['company_name']
+            )
+        )
         
         conn.commit()
         cur.close()
@@ -102,14 +125,22 @@ class Database:
         cur = conn.cursor()
         
         cur.execute("""
-            INSERT INTO contingencias_comunes (worker_id, base_contingencias_comunes, dias_cotizados, periodo)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (worker_id, periodo, base_contingencias_comunes, dias_cotizados) DO NOTHING 
-            """, (
-                worker_data['worker_id'],
-                worker_data['base_contingencias_comunes'],
-                worker_data['dias_cotizados'],
-                worker_data['periodo']
+            INSERT INTO contingencias_comunes (
+                worker_id, year, base_contingencias_comunes, dias_cotizados,
+                periodo, company_id, company_name
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (
+                worker_id, year, periodo, base_contingencias_comunes,
+                dias_cotizados, company_id, company_name
+            ) DO NOTHING
+        """, (
+            worker_data['worker_id'],
+            worker_data['year'],
+            worker_data['base_contingencias_comunes'],
+            worker_data['dias_cotizados'],
+            worker_data['periodo'],
+            worker_data['company_id'],
+            worker_data['company_name']
         ))
         
         conn.commit()
@@ -122,39 +153,48 @@ class Database:
         cur = conn.cursor()
         
         cur.execute("""
-        INSERT INTO convenio (horas_convenio_anuales)
-        VALUES (%s)
-        ON CONFLICT (horas_convenio_anuales) DO NOTHING
-        """, (convenio_data['horas_convenio_anuales'],))
+        INSERT INTO convenio (year, horas_convenio_anuales)
+        VALUES (%s, %s)
+        ON CONFLICT (year) DO NOTHING
+        """, (convenio_data['year'], convenio_data['horas_convenio_anuales'],))
         
         conn.commit()
         cur.close()
         conn.close()
-        
-    def insert_10t(self, worker_data: Dict[str, Any]):
-        """Insert or update 10t information."""
-        conn = self.connect()
-        cur = conn.cursor()
-        
-        cur.execute("""
-        INSERT INTO doc_10t (worker_id, worker_name, rendimiento_integrar)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (worker_id) DO UPDATE 
-        SET worker_name = EXCLUDED.worker_name, rendimiento_integrar = EXCLUDED.rendimiento_integrar
-        """, (worker_data['worker_id'], worker_data['worker_name'], worker_data['rendimiento_integrar']))
-        
-        conn.commit()
-        cur.close()
-        conn.close()
-    
+
     def get_workers_data(self):
 
         conn = self.connect()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+# (Salario bruto + (costes seguridad social RNT * 12 meses) * 31,4%) / horas convenio
+
         cur.execute("""
-                    SELECT 'modelo 190' as filename,worker_id, worker_name, percepcion_integra FROM workers 
-                    union 
-                    SELECT '10t' as filename,worker_id, worker_name, rendimiento_integrar as percepcion_integra FROM doc_10t
+                    
+        with porcentaje_cte as (
+            select sum(porcentaje) as porcentaje from cargas_sociales
+        ),
+        contingencias_comunes_cte as (
+            select worker_id, year, sum(base_contingencias_comunes) as base_contingencias_comunes
+            from contingencias_comunes
+            group by worker_id, year
+        )
+                    
+        SELECT 
+            workers.worker_id, 
+            workers.year, 
+            workers.worker_name, 
+            sum(percepcion_integra) as percepcion_integra,
+            max(base_contingencias_comunes) as base_contingencias_comunes,
+            max(porcentaje)/100 as porcentaje,
+            max(horas_convenio_anuales) as horas_convenio_anuales,
+            (sum(percepcion_integra) + ((max(base_contingencias_comunes)/12 )*(max(porcentaje)/100))) / max(horas_convenio_anuales)  as coste_hora
+        FROM workers
+        left join porcentaje_cte on true
+        left join convenio on workers.year = convenio.year
+        left join contingencias_comunes_cte 
+            on workers.worker_id = contingencias_comunes_cte.worker_id
+            and workers.year = contingencias_comunes_cte.year
+        GROUP BY workers.worker_id, workers.year, workers.worker_name
         """)
         workers = cur.fetchall()
         cur.close()
@@ -167,14 +207,13 @@ class Database:
         conn = self.connect()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("SELECT * FROM workers left join convenio on true left join cargas_sociales on true")
+        cur.execute("SELECT * FROM workers")
         workers = cur.fetchall()
 
         cur.execute("SELECT worker_id, periodo, sum(base_contingencias_comunes) as base_contingencias_comunes FROM contingencias_comunes group by worker_id, periodo")
         contingencias_comunes = cur.fetchall()
         
-        cur.execute("SELECT * FROM doc_10t left join convenio on true left join cargas_sociales on true")
-        doc_10t = cur.fetchall()
+        workers_data = self.get_workers_data()
 
         cur.close()
         conn.close()
@@ -182,6 +221,5 @@ class Database:
         return {
             "trabajadores": workers, 
             "contingencias_comunes": contingencias_comunes, 
-            # "convenios": convenios, 
-            "doc_10t": doc_10t
+            "coste_hora": workers_data, 
         }

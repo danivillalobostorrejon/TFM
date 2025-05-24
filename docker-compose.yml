@@ -14,6 +14,7 @@ services:
       - DB_USER=usuario
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CLEAN_DB=${CLEAN_DB}
 
 
   db:

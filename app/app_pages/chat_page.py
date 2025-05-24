@@ -1,45 +1,43 @@
-import streamlit as st
-from datetime import datetime, timedelta
 
-def show(chatbot, database, session_state):
-    """
-    Display the Chat page
-    
-    Args:
-        chatbot (ChatBot): Chatbot instance
-        calculator (CostCalculator): Cost calculator instance
-        session_state (dict): Streamlit session state
-    """
-    st.title("Chat with Worker Cost Assistant")
-    
-    # Display chat messages
+import streamlit as st
+
+def show(chatbot, pdf_preprocessor, llm_classifier, db, session_state):
+    st.title("Chat con el sistema")
+
+    # Mostrar historial
     for message in session_state.messages:
         with st.chat_message(message["role"]):
-            st.write(message["content"])
-    
-    # Chat input
-    if prompt := st.chat_input("Ask a question about worker costs..."):
-        # Add user message to chat history
+            st.markdown(message["content"])
+
+    # Subida de documentos dentro del chat
+    uploaded_files = st.file_uploader("Puedes subir documentos PDF para procesarlos", type="pdf", accept_multiple_files=True)
+
+    if uploaded_files:
+        resultados = chatbot.process_uploaded_files(uploaded_files, pdf_preprocessor, llm_classifier, db)
+        if not resultados:
+            st.warning("No se encontraron resultados en los documentos subidos.")
+        respuesta = set(resultados)
+        respuesta = "\n".join(resultados)
+
+        for file in uploaded_files:
+            session_state.messages.append({"role": "user", "content": f"[📎 Documento subido: {file.name}]"})
+            with st.chat_message("user"):
+                st.markdown(f"[📎 Documento subido: {file.name}]")
+
+        session_state.messages.append({"role": "assistant", "content": respuesta})
+        with st.chat_message("assistant"):
+            # Scrollable text area para mostrar la respuesta
+            st.text_area("Resultados del procesamiento", value=respuesta, height=300, disabled=True)
+
+
+    # Entrada del usuario
+    prompt = st.chat_input("Escribe tu consulta aquí...")
+    if prompt:
         session_state.messages.append({"role": "user", "content": prompt})
-        
-        # Display user message
         with st.chat_message("user"):
-            st.write(prompt)
-        
-        # Get context data for the chatbot
-        with st.spinner("Thinking..."):
-            start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            
-            # Get all worker cost data to provide context to the chatbot
-            context = database.get_all_workers()
-            
-            # Get response from chatbot
-            response = chatbot.get_response(prompt, context)
-            
-            # Add assistant response to chat history
-            session_state.messages.append({"role": "assistant", "content": response})
-            
-            # Display assistant response
-            with st.chat_message("assistant"):
-                st.write(response)
+            st.markdown(prompt)
+
+        response = chatbot.get_response(prompt, context=session_state.get("context", {}))
+        session_state.messages.append({"role": "assistant", "content": response})
+        with st.chat_message("assistant"):
+            st.markdown(response)

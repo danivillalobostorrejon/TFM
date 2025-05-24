@@ -25,15 +25,14 @@ class LLMClassifier:
         else:
             return "desconocido"
 
-    def extract_structured_data(self, text: str) -> Dict[str, Any]:
-        doc_type = self.classify_document_type(text)
+    def extract_structured_data(self, text: str, doc_type: str) -> Dict[str, Any]:
 
         if doc_type == "modelo_190":
             return self.extract_from_modelo_190(text)
         elif doc_type == "10t":
             return self.extract_from_10t(text)
         elif doc_type == "rnt":
-            raise ValueError("RNT necesita siglas del trabajador para extraer los datos.")
+            return self.extract_from_rnt(text)
         elif doc_type == "idc":
             return self.extract_from_idc(text)
         elif doc_type == "convenio":
@@ -58,13 +57,9 @@ class LLMClassifier:
             match = re.search(r"\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\]", content, re.DOTALL)
 
         if not match:
-            raise ValueError("No se encontró ningún JSON válido en la respuesta del modelo.")
+            raise ValueError(f"No se encontró ningún JSON válido en la respuesta del modelo.")
 
         json_text = match.group()
-
-        # Normalizar números europeos: 272.904,14 -> 272904.14
-        json_text = re.sub(r'(\d+)\.(\d{3}),(\d+)', r'\1\2.\3', json_text)  # 272.904,14 -> 272904.14
-        json_text = re.sub(r'(\d+),(\d+)', r'\1.\2', json_text)  # 24214,44 -> 24214.44
 
         try:
             return json.loads(json_text)
@@ -73,22 +68,61 @@ class LLMClassifier:
 
     def extract_from_modelo_190(self, text: str) -> Dict[str, Any]:
         prompt = f"""
-Eres un asistente que extrae información fiscal de documentos PDF.
-Tu tarea es encontrar el valor del campo \"Percepción íntegra\" asociado a un trabajador y devolverlo como JSON.
-Ejemplo de salida:
-{{"worker_name": "Jose Garcia Fontecha", "percepcion_integra": 24214.44}}
+Eres un asistente experto en análisis de documentos fiscales en formato PDF.
+
+Tu tarea consiste en extraer información estructurada de un documento, concretamente los siguientes campos:
+
+1. `"worker_name"`: el nombre completo del trabajador tal como aparece en el documento.
+2. `"percepcion_integra"`: el valor numérico asociado al campo "Percepción íntegra". Este valor representa el salario bruto anual. 
+   ⚠️ Si el número está en formato europeo (por ejemplo: `24.214,44` o `24 214,44` o `24,214.44`), debes normalizarlo al formato decimal estadounidense: `24214.44` (punto como separador decimal y sin separadores de miles).
+3. `"year"`: el año fiscal indicado en el documento. Aparece en el campo "Ejercicio", normalmente cerca del encabezado o inicio de la página.
+4. `"worker_id"`: un identificador generado tomando las dos primeras letras del primer apellido, las dos primeras letras del segundo apellido, y la inicial del nombre. Por ejemplo, si el nombre es "Jose Garcia Fontecha", el identificador es `"GAFOJ"`.
+5. `"company_name"`: el nombre de la empresa que aparece en el documento. Que aparece como "Apellidos y nombre o razón social". Si no aparece, puedes dejarlo como "no definido".
+6. `"company_id"`: el CIF de la empresa que aparece en el documento. Que aparece como "NIF del declarante" (Ejemplo: "NIF: B24532178"), si no aparece, puedes dejarlo como "no definido".
+
+Devuelve exclusivamente un objeto JSON válido con esta información.
+
+Ejemplo de salida esperada:
+{{
+    "worker_name": "Jose Garcia Fontecha",
+    "percepcion_integra": 24214.44,
+    "year": 2021,
+    "worker_id": "GAFOJ",
+    "company_name": "Nombre de la empresa",
+    "company_id": "B24532178"
+}}
 
 Contenido del documento:
 {text}
+
 """
         return self._query_openai(prompt, "modelo_190")
 
     def extract_from_10t(self, text: str) -> Dict[str, Any]:
         prompt = f"""
-Eres un asistente que extrae información fiscal de documentos PDF.
-Tu tarea es encontrar el valor del campo \"Rendimiento a integrar\" asociado a un trabajador y devolverlo como JSON.
-Ejemplo de salida:
-{{"worker_name": "Jose Garcia Fontecha", "rendimiento_integrar": 60000.00, "worker_id": "GAFOJ"}}
+Eres un asistente experto en el análisis de documentos fiscales en formato PDF.
+
+Tu tarea consiste en extraer la siguiente información de un documento fiscal (Documento 10T):
+
+1. `"worker_name"`: el nombre completo del trabajador tal y como aparece en el documento.
+2. `"percepcion_integra"`: el valor numérico asociado al campo "Rendimiento a integrar", que representa el salario bruto anual.
+    ⚠️ Si el número está en formato europeo (por ejemplo: `24.214,44` o `24 214,44` o `24,214.44`), debes normalizarlo al formato decimal estadounidense: `24214.44` (punto como separador decimal y sin separadores de miles).
+3. `"year"`: el año fiscal correspondiente, que aparece en el campo "Ejercicio" al principio del documento o página.
+4. `"worker_id"`: un identificador generado tomando las dos primeras letras del primer apellido, las dos primeras letras del segundo apellido, y la primera letra del nombre. Por ejemplo, para "Jose Garcia Fontecha", el `worker_id` sería `"GAFOJ"`.
+5. "company_name": el nombre de la empresa que aparece en el documento. Que aparece como "Apellidos y nombre o razón social"
+6. "company_id": el CIF de la empresa que aparece en el documento. Que aparece como "NIF" (Ejemplo: "NIF: B24532178")
+
+Devuelve únicamente un objeto JSON válido con esta información.
+
+Ejemplo de salida esperada:
+{{
+    "worker_name": "Jose Garcia Fontecha",
+    "percepcion_integra": 60000.00,
+    "worker_id": "GAFOJ",
+    "year": 2021
+    "company_name": "Nombre de la empresa",
+    "company_id": "B24532178"
+}}
 
 Contenido del documento:
 {text}
@@ -105,10 +139,15 @@ Contenido del documento:
         - `"worker_id"`: el identificador del trabajador (CAF), de 5 letras mayúsculas.
         - `"base_contingencias_comunes"`: número decimal, por ejemplo: 3170.19
         - `"dias_cotizados"`: número entero, por ejemplo: 30
+        - "year": año de la liquidación, por ejemplo: 2021, sale del campo "Periodo de liquidación" (ver más abajo).
+        - "company_id": el CIF de la empresa que aparece en el documento. Que aparece como "Código de empresario" (Ejemplo: "Código de empresario: B24532178")
+        - "company_name": el nombre de la empresa que aparece en el documento. Que aparece como "Razón social" (Ej. Razón social: TALLERES PACO, SL)
 
     2. Extraer también el **periodo de liquidación** del documento. Aparece como:
     `"Periodo de liquidación 12/2021-12/2021"`
     Interprétalo y devuelve el valor `"01-12-2021"` (día 1 del mes indicado).
+
+    3. El campo "dias_cotizados" debe ser un número entero sin ceros iniciales.
 
     El resultado debe estar en el siguiente formato JSON:
 
@@ -120,12 +159,18 @@ Contenido del documento:
         "base_contingencias_comunes": 3170.19,
         "dias_cotizados": 30,
         "periodo": "01-12-2021"
+        "year": 2021,
+        "company_id": "B24532178",
+        "company_name": "TALLERES PACO, SL"
         }},
         {{
         "worker_id": "LAMAA",
         "base_contingencias_comunes": 2860.52,
         "dias_cotizados": 28, 
         "periodo": "01-12-2021"
+        "year": 2021,
+        "company_id": "B24532178",
+        "company_name": "TALLERES PACO, SL"
         }}
     ]
     }}
@@ -151,10 +196,27 @@ Contenido del documento:
 
     def extract_from_convenio(self, text: str) -> Dict[str, Any]:
         prompt = f"""
-Eres un asistente que revisa convenios laborales.
-Busca el número de horas anuales de trabajo (por ejemplo: \"1.708 h\", \"1.760 horas\", etc.).
-Devuelve la salida en formato:
-{{ "horas_convenio_anuales": 1708 }}
+Eres un asistente experto en la revisión de convenios laborales.
+
+Tu tarea consiste en extraer dos datos clave del documento:
+
+1. `"horas_convenio_anuales"`: el número de horas anuales de trabajo que establece el convenio. Puede aparecer en distintos formatos como: `1.708 h`, `1.760 horas`, `1700h`, etc.
+
+2. `"year"`: el año final de la vigencia del convenio. Este aparece típicamente en frases como:
+   - “vigencia desde el 1 de enero de 2019 hasta el 31 de diciembre de 2021”
+   - “el convenio estará vigente hasta el 31/12/2022”
+
+En estos casos, extrae el año final (por ejemplo, `2021` o `2022`) y úsalo como valor del campo `"year"`.
+
+Devuelve exclusivamente un objeto JSON válido con el siguiente formato:
+
+```json
+{{
+  "horas_convenio_anuales": 1708,
+  "year": 2021
+}}
+```
+
 
 Contenido del documento:
 {text}
