@@ -50,32 +50,37 @@ Tu objetivo es:
 Formato de salida esperado (en JSON o tabla):
 
 ```json
-{
+{{
   "asignacion": [
-    {
+    {{
       "fase": "Fase 1 - Análisis técnico",
       "trabajador": "Jose Garcia Fontecha",
       "horas_asignadas": 120,
       "coste_por_hora": 17.93,
       "coste_total": 2151.60
-    },
-    {
+    }},
+    {{
       "fase": "Fase 2 - Diseño",
       "trabajador": "Andrea Sáez Benito",
       "horas_asignadas": 100,
       "coste_por_hora": 22.50,
       "coste_total": 2250.00
-    }
+    }}
   ]
-}```
+}}
+````
 
 Ten en cuenta:
 
 * Si no dispones del coste por hora de un trabajador, indícalo.
+Si falta información, indica qué datos faltan:
+- salario bruto (llamado "percepción íntegra"), indica que faltan los datos del modelo 190 o 10T
+- Un número de horas trabajadas registrado. Indica que faltan los datos del convenio colectivo.
+- Datos de RNT (base de contingencias comunes y días cotizados), indica que faltan los datos del RNT
 * Si las horas asignadas superan la disponibilidad estimada anual, emite una advertencia.
 
 Contenido del documento a analizar:
-    {context_json}
+{context_json}
     """
 
         response = self.client.chat.completions.create(

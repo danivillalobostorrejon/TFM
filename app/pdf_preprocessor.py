@@ -31,12 +31,17 @@ class PDFProcessor:
 
         return id_code.upper()
 
-    def extract_text_from_pdf(self, pdf_path: str) -> str:
-        """Extract all text content from a PDF file."""
-        doc = fitz.open(pdf_path)
+    def extract_text_from_pdf(self, file_input):
+        """Extrae texto desde un archivo PDF, ya sea ruta o archivo subido por Streamlit"""
+        if hasattr(file_input, "read"):  # Si es BytesIO (Streamlit uploader)
+            doc = fitz.open(stream=file_input.read(), filetype="pdf")
+        else:  # Si es una ruta (str)
+            doc = fitz.open(file_input)
+
         text = ""
         for page in doc:
             text += page.get_text()
+        doc.close()
         return text
     
     def extract_text_by_page(self, pdf_path: str) -> List[str]:

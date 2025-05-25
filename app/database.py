@@ -182,7 +182,9 @@ class Database:
         SELECT 
             workers.worker_id, 
             workers.year, 
-            workers.worker_name, 
+            workers.worker_name,
+            workers.company_id,
+            workers.company_name,
             sum(percepcion_integra) as percepcion_integra,
             max(base_contingencias_comunes) as base_contingencias_comunes,
             max(porcentaje)/100 as porcentaje,
@@ -194,7 +196,7 @@ class Database:
         left join contingencias_comunes_cte 
             on workers.worker_id = contingencias_comunes_cte.worker_id
             and workers.year = contingencias_comunes_cte.year
-        GROUP BY workers.worker_id, workers.year, workers.worker_name
+        GROUP BY workers.worker_id, workers.year, workers.worker_name, workers.company_id, workers.company_name
         """)
         workers = cur.fetchall()
         cur.close()
@@ -207,19 +209,11 @@ class Database:
         conn = self.connect()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        cur.execute("SELECT * FROM workers")
-        workers = cur.fetchall()
-
-        cur.execute("SELECT worker_id, periodo, sum(base_contingencias_comunes) as base_contingencias_comunes FROM contingencias_comunes group by worker_id, periodo")
-        contingencias_comunes = cur.fetchall()
-        
         workers_data = self.get_workers_data()
 
         cur.close()
         conn.close()
         
         return {
-            "trabajadores": workers, 
-            "contingencias_comunes": contingencias_comunes, 
             "coste_hora": workers_data, 
         }

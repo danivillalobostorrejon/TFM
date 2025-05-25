@@ -8,7 +8,6 @@ from database import Database
 from chatbot import ChatBot
 
 # Importación directa de los módulos de las páginas
-from app_pages.upload_page import show as show_upload_page
 from app_pages.view_workers_page import show as show_view_workers_page
 from app_pages.chat_page import show as show_chat_page
 
