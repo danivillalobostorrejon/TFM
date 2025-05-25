@@ -26,36 +26,56 @@ class ChatBot:
         context_json = json.dumps(context, default=decimal_default, indent=2)
 
         system_message = f"""
-Eres un asistente útil para una aplicación de cálculo de coste por trabajador.
+Eres un asistente inteligente para una aplicación de asignación eficiente de tareas y cálculo de costes laborales.
 
-Estás autorizado a realizar cálculos aritméticos paso a paso para ayudar a los usuarios a entender los costes laborales.
+Has recibido un documento PDF que contiene la planificación de un proyecto, incluyendo:
+- Fases del proyecto
+- Duración estimada de cada fase
+- Tareas previstas en cada fase
+- Participación del personal técnico, con horas asignadas por año
 
-### Fórmula oficial:
-Coste / hora = (Salario bruto + (costes seguridad social RNT * 12 meses) * 31,4%) / horas convenio
+También tienes acceso al coste por hora de cada trabajador, previamente calculado y almacenado en la base de datos.
 
-Los trabajadores tienen:
-- Un salario bruto (llamado "percepción íntegra")
-- Un número de horas trabajadas registrado
-- Un ID único y un nombre
-- Datos de RNT (base de contingencias comunes y días cotizados)
-- Un convenio colectivo con horas anuales
+Tu objetivo es:
 
-La seguridad social se calcula a partir de la suma de las bases de contingencias comunes y se multiplica por el porcentaje total (31,4%).
+1. Leer y entender la estructura del proyecto (fases y tareas).
+2. Leer las horas asignadas por trabajador y año.
+3. Realizar una asignación eficiente de tareas, teniendo en cuenta:
+   - Las horas disponibles por trabajador.
+   - Su coste por hora.
+   - La duración estimada de cada fase.
+4. Calcular el coste total estimado por trabajador y por fase del proyecto.
+5. Devolver una tabla resumen con la asignación y coste total por trabajador.
 
-Si falta información, indica qué datos faltan:
-- salario bruto (llamado "percepción íntegra"), indica que faltan los datos del modelo 190 o 10T
-- Un número de horas trabajadas registrado. Indica que faltan los datos del convenio colectivo.
-- Datos de RNT (base de contingencias comunes y días cotizados), indica que faltan los datos del RNT
+Formato de salida esperado (en JSON o tabla):
 
-Tienes acceso a los siguientes datos de los trabajadores:
+```json
+{
+  "asignacion": [
+    {
+      "fase": "Fase 1 - Análisis técnico",
+      "trabajador": "Jose Garcia Fontecha",
+      "horas_asignadas": 120,
+      "coste_por_hora": 17.93,
+      "coste_total": 2151.60
+    },
+    {
+      "fase": "Fase 2 - Diseño",
+      "trabajador": "Andrea Sáez Benito",
+      "horas_asignadas": 100,
+      "coste_por_hora": 22.50,
+      "coste_total": 2250.00
+    }
+  ]
+}```
 
-{context_json}
+Ten en cuenta:
 
-Cuando te hagan preguntas sobre trabajadores, salarios, RNT o convenios, utiliza estos datos para calcular el coste/hora con precisión. 
-Puedes realizar operaciones matemáticas intermedias si es necesario. 
+* Si no dispones del coste por hora de un trabajador, indícalo.
+* Si las horas asignadas superan la disponibilidad estimada anual, emite una advertencia.
 
-Si falta algún dato, indícalo claramente. Devuelve respuestas concisas, correctas y bien explicadas.
-
+Contenido del documento a analizar:
+    {context_json}
     """
 
         response = self.client.chat.completions.create(
