@@ -37,7 +37,7 @@ def show(chatbot, pdf_preprocessor, llm_classifier, db, session_state):
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        response = chatbot.get_response(prompt, context=session_state.get("context", {}))
+        response = chatbot.get_response(prompt, context=db.get_all_workers())
         session_state.messages.append({"role": "assistant", "content": response})
         with st.chat_message("assistant"):
             st.markdown(response)

@@ -23,7 +23,7 @@ class ChatBot:
                 return float(obj)
             raise TypeError
 
-        context_json = json.dumps(context, indent=2, default=decimal_default)
+        context_json = json.dumps(context, default=decimal_default, indent=2)
 
         system_message = f"""
 Eres un asistente útil para una aplicación de cálculo de coste por trabajador.
@@ -41,6 +41,11 @@ Los trabajadores tienen:
 - Un convenio colectivo con horas anuales
 
 La seguridad social se calcula a partir de la suma de las bases de contingencias comunes y se multiplica por el porcentaje total (31,4%).
+
+Si falta información, indica qué datos faltan:
+- salario bruto (llamado "percepción íntegra"), indica que faltan los datos del modelo 190 o 10T
+- Un número de horas trabajadas registrado. Indica que faltan los datos del convenio colectivo.
+- Datos de RNT (base de contingencias comunes y días cotizados), indica que faltan los datos del RNT
 
 Tienes acceso a los siguientes datos de los trabajadores:
 
